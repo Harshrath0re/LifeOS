@@ -3,7 +3,7 @@ import { View, ViewProps, StyleSheet } from 'react-native';
 import { COLORS } from '../../../theme/colors';
 import { RADIUS } from '../../../theme/radius';
 import { SHADOWS } from '../../../theme/shadows';
-import { SPACING } from '../../../theme/spacing';
+import { SPACING } from '../../../theme/responsive';
 
 export interface CardProps extends ViewProps {
   readonly children?: React.ReactNode;
@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.card,
     borderRadius: RADIUS.card,
-    padding: SPACING.cardPadding,
+    padding: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.border,
   },

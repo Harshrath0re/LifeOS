@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ViewStyle } from 'react-native';
+import { View, StyleSheet, ViewStyle } from 'react-native';
 import { COLORS } from '../../../theme/colors';
 import { rh } from '../../../theme/responsive';
 
@@ -16,14 +16,27 @@ export const Divider: React.FC<DividerProps> = ({
   orientation = 'horizontal',
   style,
 }) => {
+  const dynamicStyle: ViewStyle =
+    orientation === 'horizontal'
+      ? { height: thickness, backgroundColor: color }
+      : { width: thickness, backgroundColor: color };
+
   return (
     <View
       style={[
-        orientation === 'horizontal'
-          ? { height: thickness, width: '100%', backgroundColor: color }
-          : { width: thickness, height: '100%', backgroundColor: color },
+        orientation === 'horizontal' ? styles.horizontal : styles.vertical,
+        dynamicStyle,
         style,
       ]}
     />
   );
 };
+
+const styles = StyleSheet.create({
+  horizontal: {
+    width: '100%',
+  },
+  vertical: {
+    height: '100%',
+  },
+});
