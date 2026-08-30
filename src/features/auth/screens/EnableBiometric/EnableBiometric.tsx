@@ -41,7 +41,7 @@ const EnableBiometric: React.FC = () => {
     try {
       const success = await BiometricService.authenticate('Enable Biometric Unlock');
       if (success) {
-        AuthService.enableBiometric();
+        await AuthService.enableBiometric();
         AuthService.updateLastAuthenticated();
         setAuthenticated(true);
       }
@@ -52,8 +52,8 @@ const EnableBiometric: React.FC = () => {
     }
   };
 
-  const handleSkip = () => {
-    AuthService.disableBiometric();
+  const handleSkip = async () => {
+    await AuthService.disableBiometric();
     AuthService.updateLastAuthenticated();
     setAuthenticated(true);
   };

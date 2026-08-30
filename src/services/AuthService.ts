@@ -4,6 +4,7 @@ import { STORAGE_KEYS } from '../storage/Keys';
 import { derivePasswordKey, generateSalt } from '../utils/hash';
 
 const KEYCHAIN_SERVICE = 'lifeos_master_auth';
+const BIOMETRIC_KEYCHAIN_SERVICE = 'lifeos_biometric_flag';
 const MASTER_USERNAME = 'lifeos_user';
 const FALLBACK_AUTH_KEY = 'fallback_auth_payload';
 
@@ -14,14 +15,15 @@ interface StoredAuthData {
 
 class AuthService {
   private fallbackPayload: StoredAuthData | null = null;
+  private fallbackBioEnabled: boolean = false;
 
   /**
    * Returns true if user has already created a master PIN / password.
    */
   async hasPassword(): Promise<boolean> {
     const existsFlag = MMKV.getBoolean(STORAGE_KEYS.MASTER_PASSWORD_EXISTS);
-    if (existsFlag !== null) {
-      return existsFlag;
+    if (existsFlag !== null && existsFlag === true) {
+      return true;
     }
 
     try {
@@ -29,12 +31,16 @@ class AuthService {
         service: KEYCHAIN_SERVICE,
       });
       const exists = Boolean(credentials);
-      MMKV.set(STORAGE_KEYS.MASTER_PASSWORD_EXISTS, exists);
+      if (exists) {
+        MMKV.set(STORAGE_KEYS.MASTER_PASSWORD_EXISTS, true);
+      }
       return exists;
     } catch {
       const fallback = MMKV.getString(FALLBACK_AUTH_KEY);
       const exists = Boolean(fallback || this.fallbackPayload);
-      MMKV.set(STORAGE_KEYS.MASTER_PASSWORD_EXISTS, exists);
+      if (exists) {
+        MMKV.set(STORAGE_KEYS.MASTER_PASSWORD_EXISTS, true);
+      }
       return exists;
     }
   }
@@ -48,7 +54,7 @@ class AuthService {
 
   /**
    * Create master PIN / password.
-   * Derives a key using PBKDF2 with salt, stores salt + derived key in Keychain/Keystore (with safe fallback).
+   * Derives a key using PBKDF2 with salt, stores salt + derived key in Keychain/Keystore.
    * Plain-text PIN is never stored or logged.
    */
   async createPassword(password: string): Promise<void> {
@@ -63,7 +69,6 @@ class AuthService {
         service: KEYCHAIN_SERVICE,
       });
     } catch {
-      // Fallback if native keychain module is not loaded in current bundle
       this.fallbackPayload = payload;
       MMKV.set(FALLBACK_AUTH_KEY, serialized);
     }
@@ -120,24 +125,61 @@ class AuthService {
   }
 
   /**
-   * Enable biometric authentication (flag in MMKV).
+   * Enable biometric authentication (persisted in Keychain & MMKV).
    */
-  enableBiometric(): void {
+  async enableBiometric(): Promise<void> {
     MMKV.set(STORAGE_KEYS.BIOMETRIC_ENABLED, true);
+    this.fallbackBioEnabled = true;
+    try {
+      await Keychain.setGenericPassword('bio_user', 'true', {
+        service: BIOMETRIC_KEYCHAIN_SERVICE,
+      });
+    } catch {
+      // Fallback in memory / MMKV
+    }
   }
 
   /**
-   * Disable biometric authentication (flag in MMKV).
+   * Disable biometric authentication (persisted in Keychain & MMKV).
    */
-  disableBiometric(): void {
+  async disableBiometric(): Promise<void> {
     MMKV.set(STORAGE_KEYS.BIOMETRIC_ENABLED, false);
+    this.fallbackBioEnabled = false;
+    try {
+      await Keychain.resetGenericPassword({
+        service: BIOMETRIC_KEYCHAIN_SERVICE,
+      });
+    } catch {
+      // Fallback in memory / MMKV
+    }
   }
 
   /**
-   * Returns whether biometric authentication is enabled.
+   * Returns whether biometric authentication is enabled (persisted across app restarts).
+   */
+  async isBiometricEnabled(): Promise<boolean> {
+    const cached = MMKV.getBoolean(STORAGE_KEYS.BIOMETRIC_ENABLED);
+    if (cached !== null) {
+      return cached;
+    }
+
+    try {
+      const creds = await Keychain.getGenericPassword({
+        service: BIOMETRIC_KEYCHAIN_SERVICE,
+      });
+      const isEnabled = Boolean(creds && creds.password === 'true');
+      MMKV.set(STORAGE_KEYS.BIOMETRIC_ENABLED, isEnabled);
+      return isEnabled;
+    } catch {
+      return this.fallbackBioEnabled;
+    }
+  }
+
+  /**
+   * Synchronous check for biometric preference.
    */
   biometricEnabled(): boolean {
-    return MMKV.getBoolean(STORAGE_KEYS.BIOMETRIC_ENABLED) ?? false;
+    return MMKV.getBoolean(STORAGE_KEYS.BIOMETRIC_ENABLED) ?? this.fallbackBioEnabled;
   }
 
   /**
@@ -160,10 +202,12 @@ class AuthService {
   async clearAuth(): Promise<void> {
     try {
       await Keychain.resetGenericPassword({ service: KEYCHAIN_SERVICE });
+      await Keychain.resetGenericPassword({ service: BIOMETRIC_KEYCHAIN_SERVICE });
     } catch {
       // Ignore cleanup error
     }
     this.fallbackPayload = null;
+    this.fallbackBioEnabled = false;
     MMKV.remove(FALLBACK_AUTH_KEY);
     MMKV.set(STORAGE_KEYS.MASTER_PASSWORD_EXISTS, false);
     MMKV.set(STORAGE_KEYS.BIOMETRIC_ENABLED, false);

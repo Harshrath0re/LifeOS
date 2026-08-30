@@ -100,7 +100,7 @@ const Splash: React.FC<Props> = ({ navigation }) => {
           return;
         }
 
-        const bioEnabled = AuthService.biometricEnabled();
+        const bioEnabled = await AuthService.isBiometricEnabled();
         if (!bioEnabled) {
           navigation.replace(AuthRoutes.UNLOCK as any);
           return;
