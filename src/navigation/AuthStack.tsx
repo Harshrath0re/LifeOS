@@ -1,25 +1,21 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import { View, StyleSheet } from 'react-native';
 import { AuthRoutes } from '../constants/routes';
 import { COLORS } from '../theme/colors';
-import { Text } from '../components/atoms/Text';
 
 import Splash from '../features/auth/screens/Splash';
+import CreatePassword from '../features/auth/screens/CreatePassword';
+import EnableBiometric from '../features/auth/screens/EnableBiometric';
+import Unlock from '../features/auth/screens/Unlock';
 
 export type AuthStackParamList = {
   [AuthRoutes.SPLASH]: undefined;
-  [AuthRoutes.LOGIN]: undefined;
-  [AuthRoutes.BIOMETRIC]: undefined;
+  [AuthRoutes.CREATE_PASSWORD]: undefined;
+  [AuthRoutes.ENABLE_BIOMETRIC]: undefined;
+  [AuthRoutes.UNLOCK]: undefined;
 };
 
 const Stack = createStackNavigator<AuthStackParamList>();
-
-const PlaceholderScreen: React.FC<{ readonly name: string }> = ({ name }) => (
-  <View style={styles.placeholderContainer}>
-    <Text variant="h2">{name}</Text>
-  </View>
-);
 
 export const AuthStack: React.FC = () => {
   return (
@@ -28,27 +24,23 @@ export const AuthStack: React.FC = () => {
       screenOptions={{
         headerShown: false,
         cardStyle: { backgroundColor: COLORS.background },
-      }}
-    >
+      }}>
       <Stack.Screen
         name={AuthRoutes.SPLASH}
         component={Splash}
       />
-      <Stack.Screen name={AuthRoutes.LOGIN}>
-        {() => <PlaceholderScreen name={AuthRoutes.LOGIN} />}
-      </Stack.Screen>
-      <Stack.Screen name={AuthRoutes.BIOMETRIC}>
-        {() => <PlaceholderScreen name={AuthRoutes.BIOMETRIC} />}
-      </Stack.Screen>
+      <Stack.Screen
+        name={AuthRoutes.CREATE_PASSWORD}
+        component={CreatePassword}
+      />
+      <Stack.Screen
+        name={AuthRoutes.ENABLE_BIOMETRIC}
+        component={EnableBiometric}
+      />
+      <Stack.Screen
+        name={AuthRoutes.UNLOCK}
+        component={Unlock}
+      />
     </Stack.Navigator>
   );
 };
-
-const styles = StyleSheet.create({
-  placeholderContainer: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});

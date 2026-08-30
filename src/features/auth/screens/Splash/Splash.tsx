@@ -9,23 +9,21 @@ import {
   View,
 } from 'react-native';
 
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../../../navigation/navigation.types';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { AuthRoutes } from '../../../../constants/routes';
+import { AuthStackParamList } from '../../../../navigation/AuthStack';
 
 import { COLORS } from '../../../../theme/colors';
-import { rw, rh } from '../../../../theme/responsive';
+import { rh, rw } from '../../../../theme/responsive';
 import { TYPOGRAPHY } from '../../../../theme/typography';
 
-import { hashPin } from '../../../../utils/hash';
 import AuthService from '../../../../services/AuthService';
 import BiometricService from '../../../../services/BiometricService';
+import { useAuthStore } from '../../../../stores/authStore';
 
-import { MMKV } from '../../../../storage/MMKV';
-import { STORAGE_KEYS } from '../../../../storage/Keys';
-
-type SplashNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  'Splash'
+type SplashNavigationProp = StackNavigationProp<
+  AuthStackParamList,
+  AuthRoutes.SPLASH
 >;
 
 type Props = {
@@ -42,68 +40,6 @@ const Splash: React.FC<Props> = ({ navigation }) => {
   const titleTranslate = useRef(new Animated.Value(25)).current;
 
   useEffect(() => {
-    const runTests = async () => {
-      console.log('==============================');
-      console.log('LifeOS Authentication Tests');
-      console.log('==============================');
-
-      console.log(
-        'Hash:',
-        await hashPin('7346'),
-      );
-
-      console.log(
-        'Has PIN:',
-        AuthService.hasPin(),
-      );
-
-      await AuthService.createPin('7346');
-
-      console.log(
-        'Has PIN After Create:',
-        AuthService.hasPin(),
-      );
-
-      console.log(
-        'Correct PIN:',
-        await AuthService.verifyPin('7346'),
-      );
-
-      console.log(
-        'Wrong PIN:',
-        await AuthService.verifyPin('1234'),
-      );
-
-      console.log(
-        'Stored Hash:',
-        MMKV.getString(
-          STORAGE_KEYS.MASTER_PIN,
-        ),
-      );
-
-      console.log(
-        'Biometric Available:',
-        await BiometricService.isAvailable(),
-      );
-
-      console.log(
-        'Biometric Type:',
-        await BiometricService.biometricType(),
-      );
-
-      const success =
-        await BiometricService.authenticate();
-
-      console.log(
-        'Biometric Success:',
-        success,
-      );
-
-      console.log('==============================');
-    };
-
-    runTests();
-
     Animated.parallel([
       Animated.timing(logoOpacity, {
         toValue: 1,
@@ -145,20 +81,61 @@ const Splash: React.FC<Props> = ({ navigation }) => {
       }),
     ).start();
 
-    const timer = setTimeout(() => {
-      navigation.replace('Login');
-    }, 2000);
+    let isMounted = true;
 
-    return () => clearTimeout(timer);
-  }, [navigation]);
+    const runAuthCheck = async () => {
+      const startTime = Date.now();
+      const hasPassword = await AuthService.hasPassword();
+
+      const elapsed = Date.now() - startTime;
+      const remainingDelay = Math.max(0, 1800 - elapsed);
+
+      setTimeout(async () => {
+        if (!isMounted) {
+          return;
+        }
+
+        if (!hasPassword) {
+          navigation.replace(AuthRoutes.CREATE_PASSWORD as any);
+          return;
+        }
+
+        const bioEnabled = AuthService.biometricEnabled();
+        if (!bioEnabled) {
+          navigation.replace(AuthRoutes.UNLOCK as any);
+          return;
+        }
+
+        const bioAvailable = await BiometricService.isAvailable();
+        if (!bioAvailable) {
+          navigation.replace(AuthRoutes.UNLOCK as any);
+          return;
+        }
+
+        const success = await BiometricService.authenticate('Unlock LifeOS');
+        if (!isMounted) {
+          return;
+        }
+
+        if (success) {
+          AuthService.updateLastAuthenticated();
+          useAuthStore.getState().setAuthenticated(true);
+        } else {
+          navigation.replace(AuthRoutes.UNLOCK as any);
+        }
+      }, remainingDelay);
+    };
+
+    runAuthCheck();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [navigation, logoOpacity, logoScale, titleOpacity, titleTranslate, rotate]);
 
   return (
     <>
-      <StatusBar
-        translucent={false}
-        backgroundColor={COLORS.background}
-        barStyle="light-content"
-      />
+      <StatusBar barStyle="light-content" />
 
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>

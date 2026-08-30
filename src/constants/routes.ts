@@ -1,7 +1,10 @@
 export enum AuthRoutes {
   SPLASH = 'Splash',
-  LOGIN = 'Login',
-  BIOMETRIC = 'Biometric',
+  CREATE_PASSWORD = 'CreatePassword',
+  ENABLE_BIOMETRIC = 'EnableBiometric',
+  UNLOCK = 'Unlock',
+  LOGIN = 'Unlock',
+  BIOMETRIC = 'EnableBiometric',
 }
 
 export enum MainTabRoutes {
