@@ -1,34 +1,59 @@
 export const COLORS = {
+    /**
+     * Backgrounds
+     */
+    background: '#070B11',
+    surface: '#101824',
+    card: '#182332',
 
-    background: '#090C12',
+    /**
+     * Brand
+     */
+    primary: '#2DD4D8',
+    primaryDark: '#19AAB0',
 
-    surface: '#141A22',
+    secondary: '#74E9FF',
 
-    card: '#1A2130',
+    accent: '#A7F3FF',
 
-    primary: '#4F7CFF',
+    /**
+     * Status
+     */
+    success: '#2ED47A',
+    warning: '#FFBE55',
+    error: '#FF627E',
 
-    secondary: '#00D9B8',
-
-    success: '#00D17F',
-
-    warning: '#FFB84D',
-
-    error: '#FF5B6E',
-
+    /**
+     * Text
+     */
     white: '#FFFFFF',
 
-    textPrimary: '#FFFFFF',
+    textPrimary: '#F8FBFF',
 
-    textSecondary: '#A8B3C7',
+    textSecondary: '#A5B4C7',
 
-    border: '#273040',
+    textMuted: '#69788C',
 
-    divider: '#202734',
+    /**
+     * Borders
+     */
+    border: '#243243',
 
-    disabled: '#697586',
+    divider: '#1A2431',
 
-    overlay: 'rgba(0,0,0,0.6)',
+    /**
+     * Others
+     */
+    disabled: '#576579',
+
+    overlay: 'rgba(0,0,0,0.65)',
 
     transparent: 'transparent',
+
+    /**
+     * Shadows
+     */
+    shadow: '#2DD4D8',
+
+    glow: 'rgba(45,212,216,0.45)',
 };

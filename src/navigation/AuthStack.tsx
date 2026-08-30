@@ -5,6 +5,8 @@ import { AuthRoutes } from '../constants/routes';
 import { COLORS } from '../theme/colors';
 import { Text } from '../components/atoms/Text';
 
+import Splash from '../features/auth/screens/Splash';
+
 export type AuthStackParamList = {
   [AuthRoutes.SPLASH]: undefined;
   [AuthRoutes.LOGIN]: undefined;
@@ -28,9 +30,10 @@ export const AuthStack: React.FC = () => {
         cardStyle: { backgroundColor: COLORS.background },
       }}
     >
-      <Stack.Screen name={AuthRoutes.SPLASH}>
-        {() => <PlaceholderScreen name={AuthRoutes.SPLASH} />}
-      </Stack.Screen>
+      <Stack.Screen
+        name={AuthRoutes.SPLASH}
+        component={Splash}
+      />
       <Stack.Screen name={AuthRoutes.LOGIN}>
         {() => <PlaceholderScreen name={AuthRoutes.LOGIN} />}
       </Stack.Screen>

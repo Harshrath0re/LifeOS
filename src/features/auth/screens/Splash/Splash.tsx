@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import {
   Animated,
   Easing,
-  Image,
   SafeAreaView,
   StatusBar,
   StyleSheet,
@@ -10,123 +9,204 @@ import {
   View,
 } from 'react-native';
 
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../../../navigation/navigation.types';
+
 import { COLORS } from '../../../../theme/colors';
 import { rw, rh } from '../../../../theme/responsive';
 import { TYPOGRAPHY } from '../../../../theme/typography';
 
-const Splash: React.FC = () => {
-  const logoScale = useRef(new Animated.Value(0.82)).current;
+import { hashPin } from '../../../../utils/hash';
+import AuthService from '../../../../services/AuthService';
+import BiometricService from '../../../../services/BiometricService';
+
+import { MMKV } from '../../../../storage/MMKV';
+import { STORAGE_KEYS } from '../../../../storage/Keys';
+
+type SplashNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  'Splash'
+>;
+
+type Props = {
+  navigation: SplashNavigationProp;
+};
+
+const Splash: React.FC<Props> = ({ navigation }) => {
+  const rotate = useRef(new Animated.Value(0)).current;
+
+  const logoScale = useRef(new Animated.Value(0.85)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
 
   const titleOpacity = useRef(new Animated.Value(0)).current;
-  const titleTranslate = useRef(new Animated.Value(18)).current;
-
-  const dot1 = useRef(new Animated.Value(0.2)).current;
-  const dot2 = useRef(new Animated.Value(0.2)).current;
-  const dot3 = useRef(new Animated.Value(0.2)).current;
+  const titleTranslate = useRef(new Animated.Value(25)).current;
 
   useEffect(() => {
+    const runTests = async () => {
+      console.log('==============================');
+      console.log('LifeOS Authentication Tests');
+      console.log('==============================');
+
+      console.log(
+        'Hash:',
+        await hashPin('7346'),
+      );
+
+      console.log(
+        'Has PIN:',
+        AuthService.hasPin(),
+      );
+
+      await AuthService.createPin('7346');
+
+      console.log(
+        'Has PIN After Create:',
+        AuthService.hasPin(),
+      );
+
+      console.log(
+        'Correct PIN:',
+        await AuthService.verifyPin('7346'),
+      );
+
+      console.log(
+        'Wrong PIN:',
+        await AuthService.verifyPin('1234'),
+      );
+
+      console.log(
+        'Stored Hash:',
+        MMKV.getString(
+          STORAGE_KEYS.MASTER_PIN,
+        ),
+      );
+
+      console.log(
+        'Biometric Available:',
+        await BiometricService.isAvailable(),
+      );
+
+      console.log(
+        'Biometric Type:',
+        await BiometricService.biometricType(),
+      );
+
+      const success =
+        await BiometricService.authenticate();
+
+      console.log(
+        'Biometric Success:',
+        success,
+      );
+
+      console.log('==============================');
+    };
+
+    runTests();
+
     Animated.parallel([
       Animated.timing(logoOpacity, {
         toValue: 1,
-        duration: 500,
+        duration: 700,
         useNativeDriver: true,
       }),
 
       Animated.spring(logoScale, {
         toValue: 1,
         friction: 6,
-        tension: 80,
+        tension: 70,
         useNativeDriver: true,
       }),
     ]).start();
 
-    Animated.timing(titleOpacity, {
-      delay: 350,
-      duration: 500,
-      toValue: 1,
-      useNativeDriver: true,
-    }).start();
-
-    Animated.timing(titleTranslate, {
-      delay: 350,
-      duration: 500,
-      easing: Easing.out(Easing.ease),
-      toValue: 0,
-      useNativeDriver: true,
-    }).start();
-
-    animateDots();
-  }, []);
-
-  const pulse = (value: Animated.Value, delay: number) =>
-    Animated.loop(
-      Animated.sequence([
-        Animated.delay(delay),
-        Animated.timing(value, {
-          toValue: 1,
-          duration: 350,
-          useNativeDriver: true,
-        }),
-        Animated.timing(value, {
-          toValue: 0.2,
-          duration: 350,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-
-  const animateDots = () => {
     Animated.parallel([
-      pulse(dot1, 0),
-      pulse(dot2, 180),
-      pulse(dot3, 360),
+      Animated.timing(titleOpacity, {
+        toValue: 1,
+        duration: 600,
+        delay: 350,
+        useNativeDriver: true,
+      }),
+
+      Animated.timing(titleTranslate, {
+        toValue: 0,
+        duration: 600,
+        delay: 350,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
     ]).start();
-  };
+
+    Animated.loop(
+      Animated.timing(rotate, {
+        toValue: 1,
+        duration: 9000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    ).start();
+
+    const timer = setTimeout(() => {
+      navigation.replace('Login');
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [navigation]);
 
   return (
     <>
       <StatusBar
+        translucent={false}
         backgroundColor={COLORS.background}
         barStyle="light-content"
       />
 
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
-          <Animated.Image
-            source={require('../../../../assets/icons/lifeos-logo.png')}
-            style={[
-              styles.logo,
-              {
-                opacity: logoOpacity,
-                transform: [{ scale: logoScale }],
-              },
-            ]}
-            resizeMode="contain"
-          />
+          <View style={styles.logoContainer}>
+            <View style={styles.logoGlow} />
+
+            <Animated.Image
+              source={require('../../../../assets/icons/lifeos-logo.png')}
+              resizeMode="contain"
+              style={[
+                styles.logo,
+                {
+                  opacity: logoOpacity,
+                  transform: [
+                    { scale: logoScale },
+                    {
+                      rotate: rotate.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '360deg'],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
+          </View>
 
           <Animated.View
             style={{
               opacity: titleOpacity,
-              transform: [{ translateY: titleTranslate }],
-            }}
-          >
-            <Text style={styles.title}>LifeOS</Text>
+              transform: [
+                {
+                  translateY: titleTranslate,
+                },
+              ],
+            }}>
+            <Text style={styles.title}>
+              LifeOS
+            </Text>
 
             <Text style={styles.subtitle}>
-              Personal Operating System
+              Your Personal Operating System
             </Text>
 
             <Text style={styles.author}>
-              by Harsh Rathore
+              Designed & Developed by Harsh Rathore
             </Text>
           </Animated.View>
-
-          <View style={styles.loadingRow}>
-            <Animated.View style={[styles.dot, { opacity: dot1 }]} />
-            <Animated.View style={[styles.dot, { opacity: dot2 }]} />
-            <Animated.View style={[styles.dot, { opacity: dot3 }]} />
-          </View>
         </View>
       </SafeAreaView>
     </>
@@ -148,19 +228,51 @@ const styles = StyleSheet.create({
     paddingHorizontal: rw(24),
   },
 
-  logo: {
-    width: rw(135),
-    height: rw(135),
+  logoContainer: {
+    width: rw(230),
+    height: rw(230),
 
-    shadowColor: COLORS.shadow,
-    shadowOpacity: 0.28,
-    shadowRadius: rw(30),
+    justifyContent: 'center',
+    alignItems: 'center',
+
+    marginBottom: rh(18),
+  },
+
+  logoGlow: {
+    position: 'absolute',
+
+    width: rw(150),
+    height: rw(150),
+
+    borderRadius: rw(75),
+
+    backgroundColor: COLORS.primary,
+
+    opacity: 0.18,
+
+    transform: [
+      {
+        scale: 1.15,
+      },
+    ],
+  },
+
+  logo: {
+    width: rw(185),
+    height: rw(185),
+
+    shadowColor: COLORS.primary,
+
+    shadowOpacity: 0.55,
+
+    shadowRadius: rw(35),
+
     shadowOffset: {
       width: 0,
       height: rh(10),
     },
 
-    elevation: 12,
+    elevation: 22,
   },
 
   title: {
@@ -168,11 +280,11 @@ const styles = StyleSheet.create({
 
     color: COLORS.white,
 
-    marginTop: rh(30),
-
     textAlign: 'center',
 
-    letterSpacing: 3,
+    letterSpacing: 4,
+
+    marginTop: rh(10),
   },
 
   subtitle: {
@@ -180,9 +292,9 @@ const styles = StyleSheet.create({
 
     color: COLORS.textSecondary,
 
-    marginTop: rh(10),
-
     textAlign: 'center',
+
+    marginTop: rh(8),
   },
 
   author: {
@@ -190,28 +302,10 @@ const styles = StyleSheet.create({
 
     color: COLORS.textMuted,
 
-    marginTop: rh(8),
-
     textAlign: 'center',
-  },
 
-  loadingRow: {
-    flexDirection: 'row',
+    marginTop: rh(18),
 
-    marginTop: rh(55),
-
-    alignItems: 'center',
-  },
-
-  dot: {
-    width: rw(8),
-
-    height: rw(8),
-
-    borderRadius: rw(4),
-
-    marginHorizontal: rw(5),
-
-    backgroundColor: COLORS.primary,
+    letterSpacing: 1,
   },
 });
